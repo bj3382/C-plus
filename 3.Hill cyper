@@ -1,0 +1,173 @@
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+
+#define SIZE 5
+
+char matrix[SIZE][SIZE];
+
+// Function to remove duplicates from the keyword and create the Playfair matrix
+void createMatrix(char key[]) {
+    int flag[26] = {0}; // To check if a character has already been added
+    int x = 0, y = 0;   // Coordinates for the matrix
+    
+    // Add the keyword to the matrix
+    for (int i = 0; key[i] != '\0'; i++) {
+        char current = toupper(key[i]);
+        if (current == 'J') {
+            current = 'I'; // Treat 'I' and 'J' as the same letter
+        }
+        if (!flag[current - 'A']) {
+            matrix[x][y] = current;
+            flag[current - 'A'] = 1;
+            y++;
+            if (y == SIZE) {
+                y = 0;
+                x++;
+            }
+        }
+    }
+
+    // Fill the matrix with remaining letters
+    for (char c = 'A'; c <= 'Z'; c++) {
+        if (c == 'J') {
+            continue; // Skip 'J'
+        }
+        if (!flag[c - 'A']) {
+            matrix[x][y] = c;
+            flag[c - 'A'] = 1;
+            y++;
+            if (y == SIZE) {
+                y = 0;
+                x++;
+            }
+        }
+    }
+}
+
+// Function to print the Playfair matrix
+void printMatrix() {
+    printf("Playfair Matrix:\n");
+    for (int i = 0; i < SIZE; i++) {
+        for (int j = 0; j < SIZE; j++) {
+            printf("%c ", matrix[i][j]);
+        }
+        printf("\n");
+    }
+}
+
+// Function to preprocess the plaintext by removing spaces and handling double letters
+void preprocessPlaintext(char plaintext[]) {
+    int len = strlen(plaintext);
+    char temp[100];
+    int k = 0;
+
+    for (int i = 0; i < len; i++) {
+        if (plaintext[i] == ' ') {
+            continue; // Skip spaces
+        }
+        char current = toupper(plaintext[i]);
+        if (current == 'J') {
+            current = 'I'; // Treat 'I' and 'J' as the same
+        }
+        temp[k++] = current;
+    }
+    temp[k] = '\0';
+    
+    len = strlen(temp);
+    k = 0;
+    
+    // Adjust double letters and pad the plaintext if needed
+    for (int i = 0; i < len; i += 2) {
+        if (temp[i] == temp[i + 1]) {
+            plaintext[k++] = temp[i];
+            plaintext[k++] = 'X'; // Insert 'X' between double letters
+            i--; // Move back one index
+        } else {
+            plaintext[k++] = temp[i];
+            if (i + 1 < len) {
+                plaintext[k++] = temp[i + 1];
+            }
+        }
+    }
+    if (k % 2 != 0) {
+        plaintext[k++] = 'X'; // Add 'X' padding if the length is odd
+    }
+    plaintext[k] = '\0';
+}
+
+// Function to find the position of a character in the matrix
+void findPosition(char c, int *row, int *col) {
+    for (int i = 0; i < SIZE; i++) {
+        for (int j = 0; j < SIZE; j++) {
+            if (matrix[i][j] == c) {
+                *row = i;
+                *col = j;
+                return;
+            }
+        }
+    }
+}
+
+// Function to encrypt a digraph using the Playfair cipher rules
+void encryptPair(char a, char b, char *aEnc, char *bEnc) {
+    int row1, col1, row2, col2;
+    
+    findPosition(a, &row1, &col1);
+    findPosition(b, &row2, &col2);
+    
+    // Rule 1: If both letters are in the same row
+    if (row1 == row2) {
+        *aEnc = matrix[row1][(col1 + 1) % SIZE];
+        *bEnc = matrix[row2][(col2 + 1) % SIZE];
+    }
+    // Rule 2: If both letters are in the same column
+    else if (col1 == col2) {
+        *aEnc = matrix[(row1 + 1) % SIZE][col1];
+        *bEnc = matrix[(row2 + 1) % SIZE][col2];
+    }
+    // Rule 3: If neither row nor column is the same
+    else {
+        *aEnc = matrix[row1][col2];
+        *bEnc = matrix[row2][col1];
+    }
+}
+
+// Function to encrypt the plaintext using the Playfair cipher
+void playfairEncrypt(char plaintext[]) {
+    int len = strlen(plaintext);
+    printf("Ciphertext: ");
+    
+    for (int i = 0; i < len; i += 2) {
+        char aEnc, bEnc;
+        encryptPair(plaintext[i], plaintext[i + 1], &aEnc, &bEnc);
+        printf("%c%c", aEnc, bEnc);
+    }
+    printf("\n");
+}
+
+int main() {
+    char key[100], plaintext[100];
+
+    // Get the keyword for the Playfair matrix
+    printf("Enter the keyword: ");
+    scanf("%s", key);
+    
+    // Get the plaintext
+    printf("Enter the plaintext: ");
+    scanf(" %[^\n]s", plaintext);
+
+    // Create the Playfair matrix from the keyword
+    createMatrix(key);
+    printMatrix();
+
+    // Preprocess the plaintext (handle spaces, double letters, etc.)
+    preprocessPlaintext(plaintext);
+    printf("Preprocessed Plaintext: %s\n", plaintext);
+    
+    // Encrypt the plaintext using the Playfair cipher
+    playfairEncrypt(plaintext);
+
+    return 0;
+}
+
